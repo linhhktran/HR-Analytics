@@ -1,5 +1,5 @@
 # HR Analytics: Job Change of Data Scientists
-![]([images/HR_analytics.png](https://blog.darwinbox.com/hubfs/MicrosoftTeams-image%20%2823%29.png))
+![](https://blog.darwinbox.com/hubfs/MicrosoftTeams-image%20(23).png)
 ## Introduction
 A company which is active in Big Data and Data Science wants to hire data scientists among people who successfully pass some courses which conduct by the company.
 
@@ -82,10 +82,10 @@ Database credentials:
 - Database name: company_course
 - Table name: employment
 
-Now let's move to the ETL process.
 ## ETL (Extract - Transform - Load)
-To perform the ETL process, I wrote a piece of code for the computer to automatically perform these cycles on Visual Studio Code, including steps such as: extracting data from sources, converting data and finally uploading data to an existing data warehouse. Specifically as follows:
-### 1. Extracting the data
+There are many separate datasets that need to be gathered into one dataset. Therefore, the ETL process needs to be done. The following codes are written on an IDE named Visual Studio Code (VSCode), including steps such as: extracting data from sources, transforming data and loading data to an existing data warehouse
+
+### Step 1. Extract the data
 Firstly, we need to import some packages to operate the code
 ```python
 import os
@@ -94,27 +94,29 @@ import requests
 from sqlalchemy import create_engine
 import pymysql
 ```
-Depending on the IDE you are using, if you encounter any errors while coding due to missing libraries, you can refer to the attached file "requirements.txt", where I have listed all the libraries used in this project (you may not need to install all the libraries here, you just need to debug the error and install according to the system's requirements). The syntax to install a library is:
+By coding on VSCode, I encounter most problems relating to missing libraries or packages. The syntax to install a library is:
 ```python
 pip install (name of library)
 ```
-Once we have all of the necessary libraries and packages, we can write a piece of code to extract automatically from the data sources.
-```python
-# Load data from the google sheets
-gg_sheet_id_1 = '1VCkHwBjJGRJ21asd9pxW4_0z2PWuKhbLR3gUHm-p4GI'
-url_1 = 'https://docs.google.com/spreadsheets/d/' + gg_sheet_id_1 + '/export?format=xlsx'
-df = pd.read_excel(url_1, sheet_name='enrollies')
 
-# Download and open the excel file
+After installing all the necessary libraries and packages, we can begin writing code to extract data from sources. The data should be automatically downloaded each time the script is executed, ensuring that we always work with the most up-to-date information.
+
+```python
+# Extract data from the google sheets
+gg_sheet_id = '1VCkHwBjJGRJ21asd9pxW4_0z2PWuKhbLR3gUHm-p4GI'
+gg_sheet_url = 'https://docs.google.com/spreadsheets/d/' + gg_sheet_id + '/export?format=xlsx'
+df = pd.read_excel(gg_sheet_url, sheet_name='enrollies')
+
+# Extract data from the xlsx file
 excel_url = 'https://assets.swisscoding.edu.vn/company_course/enrollies_education.xlsx'
-# Check if the file has been downloaded, if so then no need to download again.
+# Check if the files exists before downloading them
 if not os.path.exists('enrollies_education.xlsx'):
   excel_response = requests.get(excel_url.strip())
   with open('enrollies_education.xlsx', 'wb') as file:
     file.write(excel_response.content)
 enrollies_education = pd.read_excel('enrollies_education.xlsx')
 
-# Download and open the csv file
+# Extract data from the csv file
 csv_url = 'https://assets.swisscoding.edu.vn/company_course/work_experience.csv'
 if not os.path.exists('work_experience,csv'):
   csv_response = requests.get(csv_url)
@@ -122,27 +124,30 @@ if not os.path.exists('work_experience,csv'):
     file.write(csv_response.content)
 work_experience = pd.read_csv('work_experience.csv')
 
-# Load data from database
+# Extract data from database
 engine = create_engine('mysql+pymysql://etl_practice:550814@112.213.86.31:3360/company_course')
 training_hours = pd.read_sql_table('training_hours', con=engine)
 
 engine_1 = create_engine('mysql+pymysql://etl_practice:550814@112.213.86.31:3360/company_course')
 employment = pd.read_sql_table('employment', con=engine_1)
 
-# Load data from website
+# Extract data from a website
 table = pd.read_html('https://sca-programming-school.github.io/city_development_index/index.html')
 city = table[0]
-```
-So we have written a cycle to automatically extract data from many different data sources. And every day, according to the set time, the system will automatically access the above links to automatically retrieve and update new data (if any), without having to manually edit when there are changes to the original data.
 
-### 2. Transform the data
-Now we need to handle missing values (NA) in the dataset. How to handle these values ​​specifically as follows:
-- Check all columns in all data tables to detect NA values.
-- If there is a NA value in a column, proceed to examine the data type of that column to handle as follows:
-  + If it is a numeric column, fill the NA value with median
-  + If it is an object column or a category column, fill NA with "Unknown"
+```
+
+### Step 2. Transform the data
+
+In each dataset, missing values (N/A) and appropriate data types must be properly handled. However, in the previous Google Colab Notebook, redundant code was observed across multiple datasets. To eliminate repetition and improve efficiency, a function was created to standardize the data transformation process. The function applies the following steps:
+
+* Check all columns in every dataset to detect missing (N/A) values.
+* For columns containing missing values, determine the data type and handle them accordingly:
+  * If the column is numeric, fill N/A values with the median.
+  * If the column is categorical (object or category), fill N/A values with 'Unknown'.
+
 ```python
-# Write function to clean and transform data
+# Create a function to transform data
 def handling_missing_value(df):
   for col in df.columns:
     if df[col].isna().sum() > 0:
@@ -156,21 +161,22 @@ def handling_missing_value(df):
 # Create a dictionary to store all of the tables in the dataset
 data_tables = {
   'enrollies': df,
-  'enrollies_edu': enrollies_education,
-  'work_exp': work_experience,
+  'enrollies_education': enrollies_education,
+  'work_experience': work_experience,
   'training_hours': training_hours,
   'employment': employment,
   'city': city
 }
-# Run a for loop to handling missing values in six above data tables
+# Run a loop for handling missing values in those six data tables
 for table_name, data_frame in data_tables.items():
   data_tables[table_name] = handling_missing_value(data_frame)
 ```
-### 3. Load the data to data warehouse
-After transforming the dataset, we will load it to a data warehouse to store and utilize for analysis later. To keep things simple, I created a SQL Lite database on Dbeaver (which acts as a data warehouse) and this is where I will store all my datasets.
+### Step 3. Load the data to data warehouse
+After transforming the data, we load it into a data warehouse for storage and future analysis. To keep things simple, we use an SQLite database in DBeaver as our data warehouse, ensuring efficient storage and easy access to all datasets
+
 ```python
 # Path to the SQLite database
-db_path = r'C:\Users\LoanVo\Documents\DBeaver\data_warehouse.db'
+db_path = 'data_warehouse.db'
 # Create an SQL Alchemy engine
 engine_2 = create_engine(f'sqlite:///{db_path}')
 
@@ -181,7 +187,9 @@ training_hours.to_sql('Dim_training', con=engine_2, if_exists='replace', index=F
 city.to_sql('Dim_city', con=engine_2, if_exists='replace', index=False)
 employment.to_sql('Fact_employment', con=engine_2, if_exists='replace', index=False)
 ```
-### 4. Task schedulling
+### Step 4. Task scheduling
+So we have written a cycle to automatically extract data from many different data sources. And every day, according to the set time, the system will automatically access the above links to automatically retrieve and update new data (if any), without having to manually edit when there are changes to the original data.
+
 So we have completed a piece of code to run the ETL cycle. The last thing is to set up a schedule so that the system can automatically get data from sources at a predetermined time. I am using Windows so I chose Task Scheduler to perform this task, specifically as follows:
 - Open Task Scheduler: search for "Task Scheduler" in Start menu and open it.
 - Create a New Task:

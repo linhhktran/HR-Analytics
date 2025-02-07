@@ -188,9 +188,7 @@ city.to_sql('Dim_city', con=engine_2, if_exists='replace', index=False)
 employment.to_sql('Fact_employment', con=engine_2, if_exists='replace', index=False)
 ```
 ### Step 4. Task scheduling
-So we have written a cycle to automatically extract data from many different data sources. And every day, according to the set time, the system will automatically access the above links to automatically retrieve and update new data (if any), without having to manually edit when there are changes to the original data.
-
-So we have completed a piece of code to run the ETL cycle. The last thing is to set up a schedule so that the system can automatically get data from sources at a predetermined time. I am using Windows so I chose Task Scheduler to perform this task, specifically as follows:
+So far, we have successfully built the ETL process. However, one crucial step remains—scheduling the system to automatically extract data from sources at a predetermined time. Since I am using Windows, Task Scheduler is an ideal choice for automating this process. The setup involves the following steps:
 - Open Task Scheduler: search for "Task Scheduler" in Start menu and open it.
 - Create a New Task:
   - In the right-hand pane, click on "Create Basic Task"
